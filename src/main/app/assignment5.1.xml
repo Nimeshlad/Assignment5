@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <ws:consumer-config name="Web_Service_Consumer" service="GlobalWeather" port="GlobalWeatherSoap" serviceAddress="http://www.webservicex.net/globalweather.asmx" wsdlLocation="http://www.webservicex.net/globalweather.asmx?wsdl" doc:name="Web Service Consumer"/>
+    <http:listener-config name="HTTP_Listener_Configuration1" host="0.0.0.0" port="8082" doc:name="HTTP Listener Configuration"/>
+    <ws:consumer-config name="Web_Service_Consumer1" service="GlobalWeather" port="GlobalWeatherSoap" serviceAddress="http://www.webservicex.net/globalweather.asmx" wsdlLocation="http://www.webservicex.net/globalweather.asmx?wsdl" doc:name="Web Service Consumer"/>
+    <flow name="UsingTransfomerassignment5.1Flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/GetCitiesByCountry" allowedMethods="GET" doc:name="HTTP"/>
+        <set-variable variableName="CountryName" value="#[message.inboundProperties.'http.query.params'.CountryName]" doc:name="Variable"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://www.webserviceX.NET
+---
+{
+	ns0#GetCitiesByCountry: {
+		ns0#CountryName: flowVars.CountryName as :string
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <ws:consumer config-ref="Web_Service_Consumer" operation="GetCitiesByCountry" doc:name="Web Service Consumer"/>
+        <dw:transform-message metadata:id="3be2b315-427b-4595-b5e4-f701a3be1f64" doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%namespace ns0 http://www.webserviceX.NET
+---
+{
+	CountryName: payload.ns0#GetCitiesByCountryResponse.ns0#GetCitiesByCountryResult
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="Done" level="INFO" doc:name="Logger"/>
+          </flow>
+    <flow name="UsingSetPayloadassignment5.1Flow1">
+        <http:listener config-ref="HTTP_Listener_Configuration1" path="/soap" allowedMethods="GET" doc:name="HTTP"/>
+        <set-variable variableName="CountryName" value="#[message.inboundProperties.'http.query.params'.CountryName]" doc:name="CountryName"/>
+        <set-payload value="&lt;GetCitiesByCountry xmlns=&quot;http://www.webserviceX.NET&quot;&gt;&lt;CountryName&gt;#[flowVars.CountryName]&lt;/CountryName&gt;  &lt;/GetCitiesByCountry&gt;" doc:name="Set Payload"/>
+        <ws:consumer config-ref="Web_Service_Consumer1" operation="GetCitiesByCountry" doc:name="Web Service Consumer"/>
+        <dw:transform-message metadata:id="80af8dea-ea49-4e65-b924-8935496ba756" doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%namespace ns0 http://www.webserviceX.NET
+---
+{
+	CountryName: payload.ns0#GetCitiesByCountryResponse.ns0#GetCitiesByCountryResult
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="Consume" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
